@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: azurefile
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain  
+  storageClassName: azurefile-custom
+  accessModes:
+    - ReadWriteMany
+  azureFile:
+    secretName: azure-secret
+    shareName: database-zippy
+    readOnly: false
+  mountOptions:
+  - dir_mode=0700
+  - file_mode=0700
+  - uid=999
+  - gid=999
+  - mfsymlinks
+  - nobrl

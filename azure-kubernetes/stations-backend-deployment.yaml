@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stations-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stations-backend
+  template:
+    metadata:
+      labels:
+        app: stations-backend
+    spec:
+      containers:
+      - name: stations-backend
+        image: sebstiian/zippy_stations
+        env:
+        - name: POSTGRES_DB_HOST
+          value: database-service-statefulset
+        - name: POSTGRES_DB_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "test"
+        - name: POSTGRES_PASSWORD
+          value: "mypassword"
+        - name: POSTGRES_DB
+          value: "data"
+        ports:
+        - containerPort: 9000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+          limits:
+            cpu: "250m"
+            memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_microk8s-cluster-rg_SOFTWARE3-AKS_australiaeast
+spec:
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80        # External port for accessing the database
+      targetPort: 9000  # Port on the pod
+  selector:
+    app: stations-backend

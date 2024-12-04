@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-storage-class
+provisioner: nfs.csi.k8s.io
+parameters:
+  path: /srv/nfs/kubedata # NFS export path
+  server: 10.6.101.91  # NFS server IP or DNS name
+  readOnly: "false"
+reclaimPolicy: Delete           # Automatically delete PVCs when no longer used
+volumeBindingMode: Immediate
+

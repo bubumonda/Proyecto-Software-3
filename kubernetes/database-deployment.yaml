@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      securityContext:
+        fsGroup: 999   # Matches the PostgreSQL GID
+        runAsUser: 999 # Matches the PostgreSQL UID
+      containers:
+        - name: database
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: test
+            - name: POSTGRES_PASSWORD
+              value: mypassword
+            - name: POSTGRES_DB
+              value: data
+          ports:
+            - containerPort: 5432      
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service
+spec:
+  selector:
+    app: database
+  ports:
+    - protocol: TCP
+      port: 5432         # Internal service port
+      targetPort: 5432   # Container port
+  type: ClusterIP # Change to LoadBalancer if using a cloud providO
+
+

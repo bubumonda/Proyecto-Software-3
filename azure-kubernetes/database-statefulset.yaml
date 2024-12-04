@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: database-stateful
+spec:
+  serviceName: database-stateful
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database-stateful
+  template:
+    metadata:
+      labels:
+        app: database-stateful
+    spec:
+      securityContext:
+        fsGroup: 999   # Matches the PostgreSQL GID
+        runAsUser: 999 # Matches the PostgreSQL UID
+      # initContainers:
+      #   - name: init-postgres
+      #     image: busybox
+      #     command:
+      #       - /bin/sh
+      #       - -c
+      #       - |
+      #         echo "Configuring replication settings..."
+      #         echo "wal_level = replica" >> /var/lib/postgresql/data/postgresql.conf
+      #         echo "max_wal_senders = 5" >> /var/lib/postgresql/data/postgresql.conf
+      #         echo "max_replication_slots = 5" >> /var/lib/postgresql/data/postgresql.conf
+      #         echo "host replication all 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf        
+      #     volumeMounts:
+      #       - name: postgres-data
+      #         mountPath: /var/lib/postgresql/data
+        
+      containers:
+        - name: database-stateful
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: test
+            - name: POSTGRES_PASSWORD
+              value: mypassword
+            - name: POSTGRES_DB
+              value: data
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:    
+            requests:
+              memory: "1Gi"    # Minimum memory the database needs
+              cpu: "100m"      # Minimum CPU the database needs
+            limits:
+              memory: "4Gi"    # Maximum memory the database can use
+              cpu: "150m"         # Maximum CPU the database can use
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: azurefile-dynamic
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service-statefulset
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_microk8s-cluster-rg_SOFTWARE3-AKS_australiaeast
+  # Optional if your AKS uses a different resource group for the LB
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 5432        # External port for accessing the database
+      targetPort: 5432  # Port on the pod
+  selector:
+    app: database-stateful

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      securityContext:
+        fsGroup: 999   # Matches the PostgreSQL GID
+        runAsUser: 999 # Matches the PostgreSQL UID
+      containers:
+        - name: database
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: test
+            - name: POSTGRES_PASSWORD
+              value: mypassword
+            - name: POSTGRES_DB
+              value: data
+          ports:
+            - containerPort: 5432      
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data/
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: azure-file-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service-deployment
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_microk8s-cluster-rg_SOFTWARE3-AKS_australiaeast
+  # Optional if your AKS uses a different resource group for the LB
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 5432        # External port for accessing the database
+      targetPort: 5432  # Port on the pod
+  selector:
+    app: database

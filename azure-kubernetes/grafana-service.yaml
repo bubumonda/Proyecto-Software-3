@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: monitoring
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_microk8s-cluster-rg_SOFTWARE3-AKS_australiaeast
+spec:
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80        # External port for accessing the database
+      targetPort: 3000 # Port on the pod
+  selector:
+    app.kubernetes.io/name: grafana
+
